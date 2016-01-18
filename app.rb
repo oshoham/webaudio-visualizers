@@ -11,3 +11,7 @@ end
 get '/oscilloscope' do
   erb :oscilloscope
 end
+
+get '/spectral_flux' do
+  erb :spectral_flux
+end

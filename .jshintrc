@@ -1,15 +1,16 @@
 {
   "undef": true,
-  "unused": true,
   "predef": [
     "window",
     "document",
     "console",
     "Float32Array",
     "Uint8Array",
-    "twgl",
     "AudioContext",
     "XMLHttpRequest",
-    "chroma"
-  ]
+    "module",
+    "global",
+    "require"
+  ],
+  "esnext": true
 }
