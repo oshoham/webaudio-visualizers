@@ -16,7 +16,7 @@ module.exports = function (grunt) {
           "./dist/spectrogram.js": ["./src/spectrogram.js"],
           "./dist/oscilloscope.js": ["./src/oscilloscope.js"],
           "./dist/frequency-graph.js": ["./src/frequency-graph.js"],
-          "./dist/spectral-flux.js": ["./src/spectral-flux.js"],
+          "./dist/spectral-flux.js": ["./src/spectral-flux.js"]
         }
       }
     },

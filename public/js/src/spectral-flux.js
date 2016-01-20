@@ -3,79 +3,43 @@
  * described in "Simple Spectrum-Based Onset Detection" (http://www.music-ir.org/evaluation/MIREX/2006_abstracts/OD_dixon.pdf)
  */
 
-import { AudioContext, OfflineAudioContext, requestAnimationFrame } from './utils';
-import stft from './stft';
+import {
+  AudioContext,
+  Worker,
+  requestAnimationFrame,
+  loadAudio,
+  resizeCanvas
+} from './utils';
 
 /* Functions */
-
-function resizeCanvas (canvas) {
-  var displayWidth  = canvas.clientWidth;
-  var displayHeight = canvas.clientHeight;
-
-  if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
-    canvas.width  = displayWidth;
-    canvas.height = displayHeight;
-  }
-}
-
-function loadAudio (context, url) {
-  return new Promise(function (resolve, reject) {
-    var request = new XMLHttpRequest();
-
-    request.open('GET', url, true);
-    request.responseType = 'arraybuffer';
-
-    request.onload = function () {
-      context.decodeAudioData(
-        request.response,
-        function (buffer) { resolve(buffer); },
-        function (error) { reject(error); }
-      );
-    };
-
-    request.onerror = function () {
-      reject(Error("Network Error"));
-    };
-
-    request.send();
-  });
-}
 
 function playSound (sourceNode) {
   sourceNode.start(0);
 }
 
-function setupAudioNodes (context) {
-  /**
-   * context.destination is a special node that is associated
-   * with the default audio output of your system
-   */
+function setupAudioNodes (context, { stftData, spectralFluxData, standardizedSpectralFluxData }) {
   var sourceNode = context.createBufferSource();
-  sourceNode.connect(context.destination);
+  var spectralFluxProcessor = context.createScriptProcessor(512, 1, 1);
 
-  var analyserNode = context.createAnalyser();
-  analyserNode.fftSize = 2048;
-  analyserNode.smoothingTimeConstant = 0.785;
+  spectralFluxProcessor.onaudioprocess = function (audioProcessingEvent) {
+    var playbackTime = audioProcessingEvent.playbackTime;
+    // preprocessedDataBin = playbackTime * 44100 (sample rate) / 441 (STFT hop size)
+    var preprocessedDataBin = Math.floor(playbackTime * 100);
+    console.log(standardizedSpectralFluxData[preprocessedDataBin]);
+  };
 
-  sourceNode.connect(analyserNode);
+  sourceNode.connect(spectralFluxProcessor);
+  spectralFluxProcessor.connect(context.destination);
 
   return {
     sourceNode: sourceNode,
-    analyserNode: analyserNode
+    analyserNode: spectralFluxProcessor
   };
-}
-
-function halfWaveRectifier (x) {
-  return (x + Math.abs(x)) / 2;
-}
-
-function spectralFlux (frequencyMatrix) {
 }
 
 function visualize () {
   // audio context variables
   var context = new AudioContext();
-  var nodes = setupAudioNodes(context);
 
   // canvas variables
   var canvas = document.getElementById('canvas');
@@ -90,14 +54,19 @@ function visualize () {
   canvasCtx.fillStyle = 'rgb(0, 0, 0)';
   canvasCtx.fillRect(0, 0, width, height);
 
-  loadAudio(context, 'sounds/flim.mp3').then(function (buffer) {
-    stft(buffer).then(function (stftData) {
-      debugger;
-      nodes.sourceNode.buffer = buffer;
+  var stftWorker = new Worker('js/workers/stft-worker.js');
+
+  loadAudio(context, 'sounds/flim.mp3').then(function (audioBuffer) {
+    let audioBufferData = audioBuffer.getChannelData(0).slice();
+
+    stftWorker.onmessage = function (e) {
+      let nodes = setupAudioNodes(context, e.data);
+      nodes.sourceNode.buffer = audioBuffer;
       playSound(nodes.sourceNode);
-    });
+    };
+
+    stftWorker.postMessage(audioBufferData, [audioBufferData.buffer]);
   });
 }
 
 visualize();
-

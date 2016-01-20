@@ -6,7 +6,6 @@
     "console",
     "Float32Array",
     "Uint8Array",
-    "AudioContext",
     "XMLHttpRequest",
     "module",
     "global",
