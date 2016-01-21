@@ -423,3 +423,29 @@ function standardize (array) {
     return (value - mean) / stdDev;
   });
 }
+
+function threshold (n, alpha, data) {
+  if (n < 1) {
+    return 0;
+  }
+
+  return Math.max(data[n], alpha * threshold(n - 1, alpha, data) + (1.0 - alpha) * data[n]);
+}
+
+function pickPeaks (data, options) {
+  options = options || {};
+
+  var w = options.w || 3;
+  var m = options.m || 3;
+  var delta = options.delta || 0;
+  var alpha = options.alpha || 0;
+
+  return data.map(function (value, i) {
+    var greaterThanSurroundingValues = true;
+    for (var k = i - w; k <= i + w; k++) {
+      greaterThanSurroundingValues = greaterThanSurroundingValues && data[i] >= data[k];
+    }
+
+    var abovePreviousThreshold = value >= threshold(i - 1);
+  });
+}
