@@ -9,7 +9,8 @@ module.exports = function (grunt) {
       dist: {
         options: {
           transform: [
-            ["babelify", { presets: ["es2015"] }]
+            ["babelify", { presets: ["es2015"] }],
+            ["glslify"]
           ]
         },
         files: {
@@ -22,7 +23,7 @@ module.exports = function (grunt) {
     },
     watch: {
       scripts: {
-        files: ["./src/*.js"],
+        files: ["./src/*.js", "./src/shaders/*.glsl"],
         tasks: ["browserify"]
       }
     }

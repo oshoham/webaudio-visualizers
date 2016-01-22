@@ -1,4 +1,4 @@
-/* globals importScripts, self, stft, spectralFlux, standardize */
+/* globals importScripts, self, stft, spectralFlux, normalize */
 
 importScripts('stft-worker-helpers.js');
 
@@ -6,11 +6,11 @@ self.onmessage = function (e) {
   var buffer = e.data;
   var stftData = stft(buffer);
   var spectralFluxData = spectralFlux(stftData);
-  var standardizedSpectralFluxData = standardize(spectralFluxData);
+  var normalizedSpectralFluxData = normalize(spectralFluxData);
 
   self.postMessage({
     stftData: stftData,
     spectralFluxData: spectralFluxData,
-    standardizedSpectralFluxData: standardizedSpectralFluxData
+    normalizedSpectralFluxData: normalizedSpectralFluxData,
   });
 };

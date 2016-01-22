@@ -416,7 +416,7 @@ function standardDeviation (array) {
   return Math.sqrt(averageSquareDifference);
 }
 
-function standardize (array) {
+function normalize (array) {
   var mean = average(array);
   var stdDev = standardDeviation(array);
   return array.map(function (value) {
@@ -424,28 +424,45 @@ function standardize (array) {
   });
 }
 
-function threshold (n, alpha, data) {
-  if (n < 1) {
-    return 0;
+function lowPassFilter (n, alpha, data) {
+  var acc = 0.0;
+  for (var i = 0; i <= n; i++) {
+    acc = Math.max(data[n], alpha * acc + (1.0 - alpha) * data[n]);
   }
-
-  return Math.max(data[n], alpha * threshold(n - 1, alpha, data) + (1.0 - alpha) * data[n]);
+  return acc;
 }
 
-function pickPeaks (data, options) {
+function selectOnsets (data, options) {
   options = options || {};
 
   var w = options.w || 3;
   var m = options.m || 3;
-  var delta = options.delta || 0;
-  var alpha = options.alpha || 0;
+  var delta = options.delta || 0.5;
+  var alpha = options.alpha || 0.5;
 
-  return data.map(function (value, i) {
-    var greaterThanSurroundingValues = true;
-    for (var k = i - w; k <= i + w; k++) {
-      greaterThanSurroundingValues = greaterThanSurroundingValues && data[i] >= data[k];
+  var length = data.length;
+  var greaterThanSurroundingValues,
+      aboveLowPassFilter,
+      aboveLocalMeanThreshold,
+      sumOfLocalValues,
+      k;
+
+  return data.map(function (value, n, array) {
+    greaterThanSurroundingValues = true;
+    for (k = n - w; k <= n + w; k++) {
+      greaterThanSurroundingValues = greaterThanSurroundingValues && value >= array[Math.max(0, Math.min(k, length - 1))];
     }
 
-    var abovePreviousThreshold = value >= threshold(i - 1);
+    sumOfLocalValues = 0.0;
+    for (k = n - m * w; k <= n + w; k++) {
+      if (k >= 0 && k < length) {
+        sumOfLocalValues += array[k];
+      }
+    }
+    aboveLocalMeanThreshold = value >= ((sumOfLocalValues / (m * w + w + 1)) + delta);
+
+    aboveLowPassFilter = value >= lowPassFilter(n - 1, alpha, array);
+
+    return greaterThanSurroundingValues && aboveLocalMeanThreshold && aboveLowPassFilter ? 1 : 0;
   });
 }

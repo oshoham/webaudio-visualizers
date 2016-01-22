@@ -15,8 +15,6 @@ import {
 var glslify = require('glslify');
 
 var isOnset = false;
-var alpha = document.getElementById('alpha').value;
-var delta = document.getElementById('delta').value;
 
 function lowPassFilter (n, alpha, data) {
   var acc = 0.0;
@@ -29,8 +27,8 @@ function lowPassFilter (n, alpha, data) {
 function detectOnset (n, data, options = {}) {
   var w = options.w || 3;
   var m = options.m || 3;
-  var delta = options.delta || 0.3;
-  var alpha = options.alpha || 0.3;
+  var delta = options.delta || 0.5;
+  var alpha = options.alpha || 0.5;
 
   var length = data.length;
   var value = data[n];
@@ -62,8 +60,6 @@ function setupAudioNodes (context, { stftData, spectralFluxData, normalizedSpect
     var playbackTime = audioProcessingEvent.playbackTime;
     // preprocessedDataBin = playbackTime * 44100 (sample rate) / 441 (STFT hop size)
     var spectralFluxDataBin = Math.floor(playbackTime * 100);
-    var alpha = document.getElementById('alpha').value;
-    var delta = document.getElementById('delta').value;
     isOnset = detectOnset(spectralFluxDataBin, normalizedSpectralFluxData);
 
     if (isOnset) {
@@ -95,90 +91,6 @@ function setupAudioNodes (context, { stftData, spectralFluxData, normalizedSpect
 }
 
 function visualize () {
-  var canvas = document.getElementById('canvas');
-  var canvasCtx = canvas.getContext('2d');
-  /*
-  var gl = twgl.getWebGLContext(document.getElementById('canvas'));
-  var vertexShader = glslify('./shaders/vertex_shader.glsl');
-  var fragmentShader = glslify('./shaders/circle_shader.glsl');
-  var programInfo = twgl.createProgramInfo(gl, [vertexShader, fragmentShader]);
-  var arrays = {
-    position: {
-      numComponents: 3,
-      data: [
-      // triangle covering lower left half of the screen
-      -1, -1, 0,
-       1, -1, 0,
-      -1, 1, 0,
-      // triangle covering upper right half of screen
-      -1, 1, 0,
-       1, -1, 0,
-       1, 1, 0
-      ]
-    }
-  };
-  var bufferInfo = twgl.createBufferInfoFromArrays(gl, arrays);
-  */
-
-  function draw (time) {
-    twgl.resizeCanvasToDisplaySize(canvas);
-    var width = canvas.width;
-    var height = canvas.height;
-
-    alpha = document.getElementById('alpha').value || 0.5;
-    delta = document.getElementById('delta').value || 0;
-
-    /*
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
-    var uniforms = {
-      time: time * 0.001,
-      resolution: [gl.canvas.width, gl.canvas.height],
-      isNoteOnset: isOnset
-    };
-
-    gl.useProgram(programInfo.program);
-    twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
-    twgl.setUniforms(programInfo, uniforms);
-    twgl.drawBufferInfo(gl, gl.TRIANGLES, bufferInfo);
-    */
-
-    canvasCtx.fillStyle = 'rgb(200, 200, 200)';
-    canvasCtx.fillRect(0, 0, width, height);
-
-    canvasCtx.lineWidth = 2;
-    canvasCtx.strokeStyle = 'rgb(0, 0, 0)';
-
-    canvasCtx.beginPath();
-
-    var x = width / 2;
-    var y = height / 2;
-    var radius = height / 3;
-    var frequency = 10;
-    var amp = 0.1 * time;
-    var angle, dx, dy;
-
-    var waveAmplitude = 0.03;
-    var waveFrequency = 50;
-    var rotationSpeed = 0.05;
-    var oscillationSpeed = 0.005;
-
-    for (angle = 0; angle <= 2 * Math.PI; angle += 0.001) {
-      dx = x + radius * Math.cos(angle) * (1.0 + waveAmplitude * Math.sin(angle * waveFrequency + rotationSpeed * time) * Math.sin(oscillationSpeed * time));
-      dy = y + radius * Math.sin(angle) * (1.0 + waveAmplitude * Math.sin(angle * waveFrequency + rotationSpeed * time) * Math.sin(oscillationSpeed * time));
-
-      if (angle === 0) {
-        canvasCtx.moveTo(dx, dy);
-      } else {
-        canvasCtx.lineTo(dx, dy);
-      }
-    }
-
-    canvasCtx.stroke();
-
-    requestAnimationFrame(draw);
-  }
-
   var context = new AudioContext();
   var stftWorker = new Worker('js/workers/stft-worker.js');
 
@@ -189,7 +101,6 @@ function visualize () {
       let nodes = setupAudioNodes(context, e.data);
       nodes.sourceNode.buffer = audioBuffer;
       nodes.sourceNode.start(0);
-      requestAnimationFrame(draw);
     };
 
     stftWorker.postMessage(audioBufferData, [audioBufferData.buffer]);
