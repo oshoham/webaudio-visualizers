@@ -17,6 +17,7 @@ var glslify = require('glslify');
 var isOnset = false;
 var alpha = document.getElementById('alpha').value;
 var delta = document.getElementById('delta').value;
+debugger;
 
 function lowPassFilter (n, alpha, data) {
   var acc = 0.0;
@@ -29,8 +30,8 @@ function lowPassFilter (n, alpha, data) {
 function detectOnset (n, data, options = {}) {
   var w = options.w || 3;
   var m = options.m || 3;
-  var delta = options.delta || 0.3;
-  var alpha = options.alpha || 0.3;
+  var delta = options.delta || 0.35;
+  var alpha = options.alpha || 0.84;
 
   var length = data.length;
   var value = data[n];
@@ -84,7 +85,6 @@ function setupAudioNodes (context, { stftData, spectralFluxData, normalizedSpect
     onsetDetectorNode.disconnect(context.destination);
   };
 
-  //sourceNode.connect(context.destination);
   sourceNode.connect(onsetDetectorNode);
   onsetDetectorNode.connect(context.destination);
 
@@ -97,28 +97,6 @@ function setupAudioNodes (context, { stftData, spectralFluxData, normalizedSpect
 function visualize () {
   var canvas = document.getElementById('canvas');
   var canvasCtx = canvas.getContext('2d');
-  /*
-  var gl = twgl.getWebGLContext(document.getElementById('canvas'));
-  var vertexShader = glslify('./shaders/vertex_shader.glsl');
-  var fragmentShader = glslify('./shaders/circle_shader.glsl');
-  var programInfo = twgl.createProgramInfo(gl, [vertexShader, fragmentShader]);
-  var arrays = {
-    position: {
-      numComponents: 3,
-      data: [
-      // triangle covering lower left half of the screen
-      -1, -1, 0,
-       1, -1, 0,
-      -1, 1, 0,
-      // triangle covering upper right half of screen
-      -1, 1, 0,
-       1, -1, 0,
-       1, 1, 0
-      ]
-    }
-  };
-  var bufferInfo = twgl.createBufferInfoFromArrays(gl, arrays);
-  */
 
   function draw (time) {
     twgl.resizeCanvasToDisplaySize(canvas);
@@ -127,21 +105,6 @@ function visualize () {
 
     alpha = document.getElementById('alpha').value || 0.5;
     delta = document.getElementById('delta').value || 0;
-
-    /*
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
-    var uniforms = {
-      time: time * 0.001,
-      resolution: [gl.canvas.width, gl.canvas.height],
-      isNoteOnset: isOnset
-    };
-
-    gl.useProgram(programInfo.program);
-    twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
-    twgl.setUniforms(programInfo, uniforms);
-    twgl.drawBufferInfo(gl, gl.TRIANGLES, bufferInfo);
-    */
 
     canvasCtx.fillStyle = 'rgb(200, 200, 200)';
     canvasCtx.fillRect(0, 0, width, height);

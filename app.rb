@@ -15,3 +15,7 @@ end
 get '/spectral_flux' do
   erb :spectral_flux
 end
+
+get '/beat_detection' do
+  erb :beat_detection
+end

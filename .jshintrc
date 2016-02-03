@@ -9,7 +9,8 @@
     "XMLHttpRequest",
     "module",
     "global",
-    "require"
+    "require",
+    "Event"
   ],
   "esnext": true
 }
