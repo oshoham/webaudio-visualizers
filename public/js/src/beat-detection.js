@@ -1,3 +1,4 @@
+import d3 from 'd3';
 import twgl from 'twgl.js';
 import {
   AudioContext,
@@ -12,57 +13,98 @@ function visualize (audioHandler, audioUrl) {
   var canvas = document.getElementById('canvas');
   var canvasCtx = canvas.getContext('2d');
 
-  var onBeat = function () {
-    console.log('beat');
-  };
+  // var isBeat = false;
+  // var onBeat = function () {
+  //   isBeat = true;
+  // };
+
+  // var frequencyBins = [];
+  // var onFreq = function (frequencyData) {
+  //   frequencyBins = frequencyData.slice(0, 500).filter(function (value, i) {
+  //     return i % 70 === 0;
+  //   });
+  // };
+
+  var colors = [
+    '#351330',
+    '#424254',
+    '#64908A',
+    '#E8CAA4',
+    '#CC2A41'
+  ];
+  var [fillColor, strokeColor] = d3.shuffle(colors).slice(0, 2);
 
   // stop audio if we were already playing something
   audioHandler.stopSound();
-  audioHandler.unbind('beat', onBeat);
+  // audioHandler.unbind('beat', onBeat);
+  // audioHandler.unbind('frequencyData', onFreq);
 
-  audioHandler.bind('beat', onBeat);
+  // audioHandler.bind('beat', onBeat);
+  // audioHandler.bind('frequencyData', onFreq);
 
   function draw (time) {
+    audioHandler.update();
+    var isBeat = audioHandler.isBeat;
+    var frequencyBins = audioHandler.freqByteData.slice(0, 500).filter(function (value, i) {
+      return i % 70 === 0;
+    });
+
     twgl.resizeCanvasToDisplaySize(canvas);
     var width = canvas.width;
     var height = canvas.height;
 
     canvasCtx.clearRect(0, 0, width, height);
 
-    audioHandler.trigger('update');
+    if (isBeat) {
+      [fillColor, strokeColor] = d3.shuffle(colors).slice(0, 2);
+      console.log(fillColor, strokeColor);
+    }
 
-    canvasCtx.fillStyle = 'rgb(200, 200, 200)';
+    canvasCtx.fillStyle = fillColor;
     canvasCtx.fillRect(0, 0, width, height);
 
     canvasCtx.lineWidth = 2;
-    canvasCtx.strokeStyle = 'rgb(0, 0, 0)';
+    canvasCtx.strokeStyle = strokeColor;
 
-    canvasCtx.beginPath();
+    var radiusScale = d3.scale.linear()
+      .domain([0, d3.max(frequencyBins)])
+      .range([0, 420]);
 
     var x = width / 2;
     var y = height / 2;
     var radius = height / 3;
     var frequency = 10;
     var amp = 0.1 * time;
-    var angle, dx, dy;
 
-    var waveAmplitude = 0.03;
+    var waveAmplitude = isBeat ? 0.06 : 0.03;
     var waveFrequency = 50;
-    var rotationSpeed = 0.05;
-    var oscillationSpeed = 0.005;
+    var rotationSpeed = 0.008;
+    var oscillationSpeed = 0.002;
 
-    for (angle = 0; angle <= 2 * Math.PI; angle += 0.001) {
-      dx = x + radius * Math.cos(angle) * (1.0 + waveAmplitude * Math.sin(angle * waveFrequency + rotationSpeed * time) * Math.sin(oscillationSpeed * time));
-      dy = y + radius * Math.sin(angle) * (1.0 + waveAmplitude * Math.sin(angle * waveFrequency + rotationSpeed * time) * Math.sin(oscillationSpeed * time));
+    frequencyBins.forEach(function (frequency, i) {
+      canvasCtx.beginPath();
+      let radius = radiusScale(frequency);
 
-      if (angle === 0) {
-        canvasCtx.moveTo(dx, dy);
-      } else {
-        canvasCtx.lineTo(dx, dy);
+      for (let angle = 0; angle <= 2 * Math.PI; angle += 0.001) {
+        let dx = x + radius * Math.cos(angle) * (1.0 + waveAmplitude * Math.sin(angle * waveFrequency + rotationSpeed * time) * Math.sin(oscillationSpeed * time));
+        let dy = y + radius * Math.sin(angle) * (1.0 + waveAmplitude * Math.sin(angle * waveFrequency + rotationSpeed * time) * Math.sin(oscillationSpeed * time));
+
+        // rotate in the opposite direction
+        if (i % 2 === 2) {
+          [dx, dy] = [dy, dx];
+        }
+
+        if (angle === 0) {
+          canvasCtx.moveTo(dx, dy);
+        } else {
+          canvasCtx.lineTo(dx, dy);
+        }
       }
-    }
 
-    canvasCtx.stroke();
+      canvasCtx.stroke();
+    });
+
+    isBeat = false;
 
     requestAnimationFrame(draw);
   }
@@ -82,8 +124,9 @@ function main() {
   var soundCloud = new SoundCloudClient('542f757c8ad6d362950b2467b26259f5');
   var audioHandler = new AudioHandler();
 
-  var input = document.getElementById('soundcloud-search');
-  var results = document.getElementById('soundcloud-results');
+  var search = document.getElementById('soundcloud-search');
+  var input = document.getElementById('soundcloud-search-input');
+  var results = document.getElementById('soundcloud-search-results');
 
   var keyup = Rx.Observable.fromEvent(input, 'input')
     .map(function (e) {
@@ -105,6 +148,7 @@ function main() {
     return function () {
       clearChildren(results);
       input.value = '';
+      search.classList.add('search--fadeout');
       visualize(audioHandler, streamUrl);
     };
   }
@@ -119,7 +163,7 @@ function main() {
     return li;
   }
 
-  var subscription = searcher.subscribe(
+  searcher.subscribe(
     function (data) {
       data = data || [];
       // Append the results

@@ -25,6 +25,7 @@ class AudioHandler {
     this.waveData = []; //waveform - from 0 - 1 . no sound is 0.5. Array [binCount]
     this.levelsData = []; //levels of each frequecy - from 0 - 1 . no sound is 0. Array [levelsCount]
 
+    this.isBeat = false;
     this.beatCutOff = 0;
     this.beatTime = 0;
 
@@ -39,7 +40,6 @@ class AudioHandler {
     this.beatHoldTime = audioParams.beatHoldTime || 40;
     this.beatDecayRate = audioParams.beatDecayRate || 0.97;
     this.beatThreshold = audioParams.beatThreshold || 0.15;
-    this.useLowPassFilter = audioParams.useLowPassFilter || false;
   }
 
   loadAndPlay (url) {
@@ -141,16 +141,20 @@ class AudioHandler {
     //BEAT DETECTION
     if (level > this.beatCutOff && level > this.beatThreshold) {
       this.onBeat();
+      this.isBeat = true;
       this.beatCutOff = level * 1.1;
       this.beatTime = 0;
     } else {
+      this.isBeat = false;
       if (this.beatTime <= this.beatHoldTime){
         this.beatTime++;
-      } else{
+      } else {
         this.beatCutOff *= this.beatDecayRate;
         this.beatCutOff = Math.max(this.beatCutOff, this.beatThreshold);
       }
     }
+
+    this.trigger('frequencyData', this.freqByteData);
   }
 }
 

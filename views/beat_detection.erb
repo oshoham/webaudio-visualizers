@@ -26,6 +26,20 @@
         transform: translate(-50%, -50%);
         width: 500px;
         z-index: 1;
+
+        -webkit-transition: opacity 1s ease-in-out;
+        -moz-transition: opacity 1s ease-in-out;
+        -ms-transition: opacity 1s ease-in-out;
+        -o-transition: opacity 1s ease-in-out;
+        transition: opacity 1s ease-in-out;
+      }
+
+      .search--fadeout {
+        opacity: 0;
+      }
+
+      .search--fadeout:hover {
+        opacity: 1;
       }
 
       .search__input {
@@ -61,6 +75,7 @@
         padding: 10px 10px;
         width: 100%;
         background-color: #111;
+        cursor: pointer;
       }
 
       .search__results li:hover {
@@ -90,9 +105,9 @@
   </head>
   <body>
     <canvas id="canvas"></canvas>
-    <div class="search">
-      <input type="search" class="search__input" id="soundcloud-search" placeholder="Search for a track on SoundCloud..."/>
-      <ul class="search__results" id="soundcloud-results"></ul>
+    <div class="search" id="soundcloud-search">
+      <input type="search" class="search__input" id="soundcloud-search-input" placeholder="Search for a track on SoundCloud..."/>
+      <ul class="search__results" id="soundcloud-search-results"></ul>
     </div>
   </body>
 </html>
