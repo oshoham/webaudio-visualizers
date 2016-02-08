@@ -22,15 +22,10 @@ function visualize (audioHandler) {
 
   function draw (time) {
     audioHandler.update();
-    var isBeat = false;
-    var frequencyBins = [];
-
-    if (audioHandler.isPlayingAudio) {
-      isBeat = audioHandler.isBeat;
-      frequencyBins = audioHandler.freqByteData.slice(0, 500).filter(function (value, i) {
-        return i % 70 === 0;
-      });
-    }
+    var isBeat = audioHandler.isBeat;
+    var frequencyBins = audioHandler.freqByteData.slice(0, 500).filter(function (value, i) {
+      return i % 70 === 0;
+    });
 
     resizeCanvas(canvas);
     var width = canvas.width;

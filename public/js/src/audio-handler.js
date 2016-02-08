@@ -100,8 +100,6 @@ class AudioHandler {
   }
 
   update () {
-    if (!this.isPlayingAudio) { return; }
-
     var i, j;
 
     //GET DATA
@@ -124,6 +122,11 @@ class AudioHandler {
       //adjust for the fact that lower levels are percieved more quietly
       //make lower levels smaller
       //levelsData[i] *=  1 + (i/levelsCount)/2;
+    }
+
+    // stop here so we don't mess up levelHistory
+    if (!this.isPlayingAudio) {
+      return;
     }
 
     //GET AVG LEVEL
