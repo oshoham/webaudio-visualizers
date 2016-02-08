@@ -1,5 +1,4 @@
 import { AudioContext } from './utils';
-import MicroEvent from 'microevent';
 
 class AudioHandler {
   constructor (audioParams = {}) {
@@ -30,9 +29,6 @@ class AudioHandler {
     this.beatTime = 0;
 
     this.isPlayingAudio = false;
-
-    this.bind('update', this.update.bind(this), false);
-    this.bind('togglePlay', this.onTogglePlay.bind(this), false);
   }
 
   setAudioParams (audioParams = {}) {
@@ -42,8 +38,11 @@ class AudioHandler {
     this.beatThreshold = audioParams.beatThreshold || 0.15;
   }
 
-  loadAndPlay (url) {
-    return this.loadAudio(url).then(this.startSound.bind(this));
+  loadAndPlayFromUrl (url) {
+    return this.loadAudio(url).then((audioBuffer) => {
+      this.initSourceFromBuffer(audioBuffer);
+      this.playSound();
+    });
   }
 
   loadAudio (url) {
@@ -68,15 +67,26 @@ class AudioHandler {
     });
   }
 
-  initAudioSource () {
+  initSourceFromBuffer (audioBuffer) {
     this.source = this.audioContext.createBufferSource();
     this.source.connect(this.analyser);
+    this.source.buffer = audioBuffer;
   }
 
-  startSound (audioBuffer) {
-    this.initAudioSource();
-    this.source.buffer = audioBuffer;
-    this.source.loop = true;
+  initSourceFromMediaElement (mediaElement) {
+    this.source = this.audioContext.createMediaElementSource(mediaElement);
+    this.source.connect(this.analyser);
+
+    var setIsPlayingToTrue = () => this.isPlayingAudio = true;
+    var setIsPlayingToFalse = () => this.isPlayingAudio = false;
+
+    mediaElement.addEventListener('playing', setIsPlayingToTrue);
+    mediaElement.addEventListener('pause', setIsPlayingToFalse);
+    mediaElement.addEventListener('seeking', setIsPlayingToFalse);
+    mediaElement.addEventListener('seeked', setIsPlayingToTrue);
+  }
+
+  playSound () {
     this.source.start(0);
     this.isPlayingAudio = true;
   }
@@ -87,18 +97,6 @@ class AudioHandler {
       this.source.stop(0);
       this.source.disconnect();
     }
-  }
-
-  onTogglePlay () {
-    if (this.isPlayingAudio) {
-      this.stopSound();
-    } else {
-      this.startSound();
-    }
-  }
-
-  onBeat () {
-    this.trigger('beat');
   }
 
   update () {
@@ -140,7 +138,6 @@ class AudioHandler {
 
     //BEAT DETECTION
     if (level > this.beatCutOff && level > this.beatThreshold) {
-      this.onBeat();
       this.isBeat = true;
       this.beatCutOff = level * 1.1;
       this.beatTime = 0;
@@ -153,11 +150,7 @@ class AudioHandler {
         this.beatCutOff = Math.max(this.beatCutOff, this.beatThreshold);
       }
     }
-
-    this.trigger('frequencyData', this.freqByteData);
   }
 }
-
-MicroEvent.mixin(AudioHandler);
 
 export default AudioHandler;

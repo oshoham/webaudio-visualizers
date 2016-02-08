@@ -1,29 +1,14 @@
 import d3 from 'd3';
-import twgl from 'twgl.js';
 import {
-  AudioContext,
   requestAnimationFrame,
-  loadAudio
+  resizeCanvas
 } from './utils';
 import AudioHandler from './audio-handler';
-import SoundCloudClient from './soundcloud-client';
-import Rx from 'rx';
+import initSoundCloudSearchBar from './soundcloud-search';
 
-function visualize (audioHandler, audioUrl) {
+function visualize (audioHandler) {
   var canvas = document.getElementById('canvas');
   var canvasCtx = canvas.getContext('2d');
-
-  // var isBeat = false;
-  // var onBeat = function () {
-  //   isBeat = true;
-  // };
-
-  // var frequencyBins = [];
-  // var onFreq = function (frequencyData) {
-  //   frequencyBins = frequencyData.slice(0, 500).filter(function (value, i) {
-  //     return i % 70 === 0;
-  //   });
-  // };
 
   var colors = [
     '#351330',
@@ -33,31 +18,29 @@ function visualize (audioHandler, audioUrl) {
     '#CC2A41'
   ];
   var [fillColor, strokeColor] = d3.shuffle(colors).slice(0, 2);
-
-  // stop audio if we were already playing something
-  audioHandler.stopSound();
-  // audioHandler.unbind('beat', onBeat);
-  // audioHandler.unbind('frequencyData', onFreq);
-
-  // audioHandler.bind('beat', onBeat);
-  // audioHandler.bind('frequencyData', onFreq);
+  var currentColors = new Set([fillColor, strokeColor]);
 
   function draw (time) {
     audioHandler.update();
-    var isBeat = audioHandler.isBeat;
-    var frequencyBins = audioHandler.freqByteData.slice(0, 500).filter(function (value, i) {
-      return i % 70 === 0;
-    });
+    var isBeat = false;
+    var frequencyBins = [];
 
-    twgl.resizeCanvasToDisplaySize(canvas);
+    if (audioHandler.isPlayingAudio) {
+      isBeat = audioHandler.isBeat;
+      frequencyBins = audioHandler.freqByteData.slice(0, 500).filter(function (value, i) {
+        return i % 70 === 0;
+      });
+    }
+
+    resizeCanvas(canvas);
     var width = canvas.width;
     var height = canvas.height;
 
     canvasCtx.clearRect(0, 0, width, height);
 
     if (isBeat) {
-      [fillColor, strokeColor] = d3.shuffle(colors).slice(0, 2);
-      console.log(fillColor, strokeColor);
+      [fillColor, strokeColor] = d3.shuffle(colors.filter(c => !currentColors.has(c))).slice(0, 2);
+      currentColors = new Set([fillColor, strokeColor]);
     }
 
     canvasCtx.fillStyle = fillColor;
@@ -89,11 +72,6 @@ function visualize (audioHandler, audioUrl) {
         let dx = x + radius * Math.cos(angle) * (1.0 + waveAmplitude * Math.sin(angle * waveFrequency + rotationSpeed * time) * Math.sin(oscillationSpeed * time));
         let dy = y + radius * Math.sin(angle) * (1.0 + waveAmplitude * Math.sin(angle * waveFrequency + rotationSpeed * time) * Math.sin(oscillationSpeed * time));
 
-        // rotate in the opposite direction
-        if (i % 2 === 2) {
-          [dx, dy] = [dy, dx];
-        }
-
         if (angle === 0) {
           canvasCtx.moveTo(dx, dy);
         } else {
@@ -109,9 +87,7 @@ function visualize (audioHandler, audioUrl) {
     requestAnimationFrame(draw);
   }
 
-  audioHandler.loadAndPlay(audioUrl).then(function () {
-    requestAnimationFrame(draw);
-  });
+  requestAnimationFrame(draw);
 }
 
 function clearChildren (element) {
@@ -121,67 +97,57 @@ function clearChildren (element) {
 }
 
 function main() {
-  var soundCloud = new SoundCloudClient('542f757c8ad6d362950b2467b26259f5');
-  var audioHandler = new AudioHandler();
-
+  var soundCloudClientId = '542f757c8ad6d362950b2467b26259f5';
   var search = document.getElementById('soundcloud-search');
   var input = document.getElementById('soundcloud-search-input');
   var results = document.getElementById('soundcloud-search-results');
+  var player = document.getElementById('player');
 
-  var keyup = Rx.Observable.fromEvent(input, 'input')
-    .map(function (e) {
-      return e.target.value; // Project the text from the input
-    })
-    .filter(function (text) {
-      return text.length > 2 || text.length === 0;
-    })
-    .distinctUntilChanged(); // Only if the value has changed
+  var audioHandler = new AudioHandler();
+  audioHandler.initSourceFromMediaElement(player);
 
-  // Search soundcloud
-  var searcher = keyup
-    .map(function (text) {
-      return text.length ? Rx.Observable.fromPromise(soundCloud.search(text)) : Rx.Observable.empty().defaultIfEmpty();
-    })
-    .switchLatest(); // Ensure no out of order results
-
-  function makeTrackClickHandler (streamUrl) {
-    return function () {
-      clearChildren(results);
-      input.value = '';
-      search.classList.add('search--fadeout');
-      visualize(audioHandler, streamUrl);
-    };
-  }
-
-  function createListElement (track) {
-    let li = document.createElement('li');
-    li.innerHTML = `
-      <img class='search__results__artwork' src=${track.artwork_url} />
-      <span class='search__results__title'>${track.title}</span>
-    `;
-    li.addEventListener('click', makeTrackClickHandler(track.stream_url), false);
-    return li;
-  }
-
-  searcher.subscribe(
-    function (data) {
-      data = data || [];
-      // Append the results
-      clearChildren(results);
-
-      data.forEach(function (track) {
-        results.appendChild(createListElement(track));
-      });
-    },
-    function (error) {
-      // Handle any errors
-      clearChildren(results);
-
-      var li = document.createElement('li');
-      li.innerHTML = 'Error: ' + error;
-      results.appendChild(li);
+  function hideControls () {
+    if (document.querySelector('#soundcloud-search:hover') || document.querySelector('#player:hover')) {
+      return;
     }
-  );
+
+    search.classList.add('search--fadeout');
+    player.classList.add('player--fadeout');
+  }
+
+  function showControls () {
+    search.classList.remove('search--fadeout');
+    player.classList.remove('player--fadeout');
+  }
+
+  initSoundCloudSearchBar(input, results, soundCloudClientId, function (track) {
+    audioHandler.source.mediaElement.src = track.stream_url;
+    player.classList.remove('player--hidden');
+
+    let fadeTime = 1000;
+    let hideControlsTimeout = window.setTimeout(function () { hideControls(); }, fadeTime);
+    window.addEventListener('mousemove', function () {
+      showControls();
+      window.clearTimeout(hideControlsTimeout);
+      hideControlsTimeout = window.setTimeout(function () { hideControls(); }, fadeTime);
+    }, false);
+
+    window.addEventListener('keydown', function (event) {
+      if (document.querySelector('#soundcloud-search-input:focus')) {
+        return;
+      }
+
+      if (event.keyCode === 32) { // spacebar
+        if (player.paused) {
+          player.play();
+        } else {
+          player.pause();
+        }
+      }
+    }, false);
+
+    visualize(audioHandler);
+  });
 }
 
 main();

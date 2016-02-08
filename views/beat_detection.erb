@@ -26,20 +26,16 @@
         transform: translate(-50%, -50%);
         width: 500px;
         z-index: 1;
-
-        -webkit-transition: opacity 1s ease-in-out;
-        -moz-transition: opacity 1s ease-in-out;
-        -ms-transition: opacity 1s ease-in-out;
-        -o-transition: opacity 1s ease-in-out;
-        transition: opacity 1s ease-in-out;
       }
 
       .search--fadeout {
         opacity: 0;
-      }
 
-      .search--fadeout:hover {
-        opacity: 1;
+        -webkit-transition: opacity 1s cubic-bezier(0.770, 0.000, 0.175, 1.000);
+        -moz-transition: opacity 1s cubic-bezier(0.770, 0.000, 0.175, 1.000);
+        -ms-transition: opacity 1s cubic-bezier(0.770, 0.000, 0.175, 1.000);
+        -o-transition: opacity 1s cubic-bezier(0.770, 0.000, 0.175, 1.000);
+        transition: opacity 1s cubic-bezier(0.770, 0.000, 0.175, 1.000);
       }
 
       .search__input {
@@ -98,6 +94,29 @@
         white-space: nowrap;
         width: 90%;
       }
+
+      .player {
+        left: 50%;
+        bottom: 0;
+        position: absolute;
+        transform: translate(-50%, -50%);
+        width: 500px;
+        z-index: 1;
+      }
+
+      .player--fadeout {
+        opacity: 0;
+
+        -webkit-transition: opacity 1s cubic-bezier(0.770, 0.000, 0.175, 1.000);
+        -moz-transition: opacity 1s cubic-bezier(0.770, 0.000, 0.175, 1.000);
+        -ms-transition: opacity 1s cubic-bezier(0.770, 0.000, 0.175, 1.000);
+        -o-transition: opacity 1s cubic-bezier(0.770, 0.000, 0.175, 1.000);
+        transition: opacity 1s cubic-bezier(0.770, 0.000, 0.175, 1.000);
+      }
+
+      .player--hidden {
+        display: none;
+      }
     </style>
 
     <link href='https://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
@@ -105,6 +124,7 @@
   </head>
   <body>
     <canvas id="canvas"></canvas>
+    <audio id="player" class="player player--hidden" crossorigin="anonymous" controls autoplay></audio>
     <div class="search" id="soundcloud-search">
       <input type="search" class="search__input" id="soundcloud-search-input" placeholder="Search for a track on SoundCloud..."/>
       <ul class="search__results" id="soundcloud-search-results"></ul>
